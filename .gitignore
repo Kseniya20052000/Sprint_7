@@ -1,0 +1,13 @@
+# Папки с результатами Allure
+allure-results/
+allure-report/
+
+# Виртуальное окружение Python (чтобы не коммитить библиотеки)
+venv/
+.venv/
+env/
+
+# Кэш pytest и другие временные файлы
+__pycache__/
+*.pyc
+.pytest_cache/
