@@ -108,5 +108,4 @@ class TestCourierCreation:
     @staticmethod
     def _cleanup(login, password):
         courier_id = get_courier_id_by_login(login, password)
-        if courier_id is not None:
-            delete_courier(courier_id)
+        delete_courier(courier_id)   
