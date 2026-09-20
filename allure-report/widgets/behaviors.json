@@ -1,1 +1,4 @@
-{"total":3,"items":[{"uid":"e00b394356aa456f942906c9ad363d42","name":"Управление курьерами","statistic":{"failed":1,"broken":0,"skipped":0,"passed":0,"unknown":0,"total":1}},{"uid":"5a2fea7745cc2e10a6dd04ba0208eed9","name":"Авторизация курьера","statistic":{"failed":1,"broken":0,"skipped":0,"passed":0,"unknown":0,"total":1}},{"uid":"39cb61c375da5806186a972e69e238d2","name":"Управление заказами","statistic":{"failed":0,"broken":0,"skipped":0,"passed":2,"unknown":0,"total":2}}]}
+{
+  "total" : 0,
+  "items" : [ ]
+}

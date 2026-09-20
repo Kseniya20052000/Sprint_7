@@ -22,7 +22,7 @@ class TestCourierCreation:
         finally:
             self._cleanup(login, password)
 
-    @allure.title("Позитивный сценарий: успешный запрос возвращает {\"ok\": true}")
+    @allure.title("Позитивный сценарий: успешный запрос возвращает ok=true")
     def test_create_courier_returns_ok_true(self):
         """Успешный запрос возвращает {"ok": true}."""
         login = generate_random_string(10)
