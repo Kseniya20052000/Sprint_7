@@ -16,26 +16,32 @@ class TestCourierLogin:
         except Exception:
             pass
 
+    @allure.step("Создать курьера через эндпоинт создания")
+    def _create_courier(self, login, password, first_name):
+        payload = {
+            "login": login,
+            "password": password,
+            "firstName": first_name,
+        }
+        return requests.post(CREATE_COURIER_URL, json=payload)
+
+    @allure.step("Выполнить логин курьера")
+    def _login_courier(self, login, password):
+        payload = {"login": login, "password": password}
+        return requests.post(LOGIN_COURIER_URL, json=payload)
+
     @allure.title("Позитивный сценарий: успешный логин возвращает id курьера (200)")
     def test_successful_login_returns_id(self):
         login = generate_random_string(10)
         password = generate_random_string(10)
+        first_name = generate_random_string(10)
 
-        # Создаём курьера через правильный эндпоинт
-        payload_create = {
-            "login": login,
-            "password": password,
-            "firstName": generate_random_string(10),
-        }
-        response_create = requests.post(CREATE_COURIER_URL, json=payload_create)
+        # Шаг 1: создать курьера
+        response_create = self._create_courier(login, password, first_name)
         assert response_create.status_code == 201, f"Ожидался 201 при создании курьера, получено {response_create.status_code}. URL: {CREATE_COURIER_URL}"
 
-        # Логинимся
-        payload_login = {
-            "login": login,
-            "password": password,
-        }
-        response = requests.post(LOGIN_COURIER_URL, json=payload_login)
+        # Шаг 2: выполнить логин
+        response = self._login_courier(login, password)
 
         assert response.status_code == 200, f"Ожидался 200 при логине, получено {response.status_code}"
         assert "id" in response.json(), "В ответе нет поля 'id'"
@@ -46,7 +52,9 @@ class TestCourierLogin:
     @allure.title("Негативный сценарий: запрос без логина возвращает ошибку 400")
     def test_login_without_login_field_returns_error(self):
         payload = {"password": generate_random_string(10)}
-        response = requests.post(LOGIN_COURIER_URL, json=payload)
+
+        with allure.step("Отправить POST-запрос на логин без поля login"):
+            response = requests.post(LOGIN_COURIER_URL, json=payload)
 
         assert response.status_code == 400, f"Ожидался 400 при отсутствии login, получено {response.status_code}"
         assert response.json().get("message") == "Недостаточно данных для входа", "Сообщение об ошибке не совпадает с документацией"
@@ -54,7 +62,9 @@ class TestCourierLogin:
     @allure.title("Негативный сценарий: запрос без пароля возвращает ошибку 400")
     def test_login_without_password_field_returns_error(self):
         payload = {"login": generate_random_string(10)}
-        response = requests.post(LOGIN_COURIER_URL, json=payload)
+
+        with allure.step("Отправить POST-запрос на логин без поля password"):
+            response = requests.post(LOGIN_COURIER_URL, json=payload)
 
         assert response.status_code == 400, f"Ожидался 400 при отсутствии password, получено {response.status_code}"
         assert response.json().get("message") == "Недостаточно данных для входа", "Сообщение об ошибке не совпадает с документацией"
@@ -64,17 +74,16 @@ class TestCourierLogin:
         login = generate_random_string(10)
         password = generate_random_string(10)
         wrong_password = "wrong_password"
+        first_name = generate_random_string(10)
 
-        payload_create = {
-            "login": login,
-            "password": password,
-            "firstName": generate_random_string(10),
-        }
-        response_create = requests.post(CREATE_COURIER_URL, json=payload_create)
+        # Шаг 1: создать курьера
+        response_create = self._create_courier(login, password, first_name)
         assert response_create.status_code == 201, f"Ожидался 201 при создании курьера, получено {response_create.status_code}"
 
-        payload_login = {"login": login, "password": wrong_password}
-        response = requests.post(LOGIN_COURIER_URL, json=payload_login)
+        # Шаг 2: попробовать залогиниться с неверным паролем
+        with allure.step("Попытаться залогиниться с неверным паролем"):
+            payload_login = {"login": login, "password": wrong_password}
+            response = requests.post(LOGIN_COURIER_URL, json=payload_login)
 
         assert response.status_code == 404, f"Ожидался 404 при неверном пароле, получено {response.status_code}"
         assert response.json().get("message") == "Учетная запись не найдена", "Сообщение не совпадает с документацией"
@@ -86,8 +95,9 @@ class TestCourierLogin:
         nonexistent_login = "nonexistent_" + generate_random_string(5)
         password = generate_random_string(10)
 
-        payload = {"login": nonexistent_login, "password": password}
-        response = requests.post(LOGIN_COURIER_URL, json=payload)
+        with allure.step("Попытаться залогиниться под несуществующим логином"):
+            payload = {"login": nonexistent_login, "password": password}
+            response = requests.post(LOGIN_COURIER_URL, json=payload)
 
         assert response.status_code == 404, f"Ожидался 404 для несуществующего пользователя, получено {response.status_code}"
         assert response.json().get("message") == "Учетная запись не найдена", "Сообщение не совпадает с документацией"
@@ -102,7 +112,8 @@ class TestCourierLogin:
         }
         del payload[missing_field]
 
-        response = requests.post(LOGIN_COURIER_URL, json=payload)
+        with allure.step(f"Отправить POST-запрос без обязательного поля '{missing_field}'"):
+            response = requests.post(LOGIN_COURIER_URL, json=payload)
 
         assert response.status_code == 400, f"Ожидался 400 при отсутствии '{missing_field}', получено {response.status_code}"
         assert response.json().get("message") == "Недостаточно данных для входа", "Сообщение не совпадает с документацией"

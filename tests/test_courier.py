@@ -7,6 +7,15 @@ import allure
 @allure.story("Создание курьера")
 class TestCourierCreation:
 
+    @allure.step("Создать курьера POST-запросом")
+    def _create_courier(self, payload):
+        return requests.post(CREATE_COURIER_URL, json=payload)
+
+    @staticmethod
+    def _cleanup(login, password):
+        courier_id = get_courier_id_by_login(login, password)
+        delete_courier(courier_id)
+
     @allure.title("Позитивный сценарий: создание курьера возвращает статус 201")
     def test_create_courier_success(self):
         """Курьера можно создать; запрос возвращает правильный код ответа (201)."""
@@ -17,7 +26,8 @@ class TestCourierCreation:
         payload = {"login": login, "password": password, "firstName": firstName}
 
         try:
-            response = requests.post(CREATE_COURIER_URL, json=payload)
+            with allure.step("Отправить запрос на создание курьера"):
+                response = self._create_courier(payload)
             assert response.status_code == 201
         finally:
             self._cleanup(login, password)
@@ -32,9 +42,10 @@ class TestCourierCreation:
         payload = {"login": login, "password": password, "firstName": firstName}
 
         try:
-            response = requests.post(CREATE_COURIER_URL, json=payload)
-            assert response.status_code == 201
-            assert response.json() == {"ok": True}
+            with allure.step("Отправить запрос на создание курьера и проверить ответ"):
+                response = self._create_courier(payload)
+                assert response.status_code == 201
+                assert response.json() == {"ok": True}
         finally:
             self._cleanup(login, password)
 
@@ -49,13 +60,14 @@ class TestCourierCreation:
 
         try:
             # Первый запрос — успешный
-            response1 = requests.post(CREATE_COURIER_URL, json=payload)
-            assert response1.status_code == 201, f"Ожидался 201, получено {response1.status_code}"
+            with allure.step("Первый запрос: создать курьера (ожидается 201)"):
+                response1 = self._create_courier(payload)
+                assert response1.status_code == 201, f"Ожидался 201, получено {response1.status_code}"
 
             # Второй запрос — должен вернуть 409 (дубликат)
-            response2 = requests.post(CREATE_COURIER_URL, json=payload)
-            assert response2.status_code == 409, f"Ожидался 409 при дубликате логина, получено {response2.status_code}"
-           
+            with allure.step("Второй запрос: повторно создать курьера с теми же данными (ожидается 409)"):
+                response2 = self._create_courier(payload)
+                assert response2.status_code == 409, f"Ожидался 409 при дубликате логина, получено {response2.status_code}"
         finally:
             self._cleanup(login, password)
 
@@ -70,8 +82,9 @@ class TestCourierCreation:
 
         try:
             # Создаём первого курьера
-            response1 = requests.post(CREATE_COURIER_URL, json=payload1)
-            assert response1.status_code == 201, f"Ожидался 201, получено {response1.status_code}"
+            with allure.step("Создать первого курьера"):
+                response1 = self._create_courier(payload1)
+                assert response1.status_code == 201, f"Ожидался 201, получено {response1.status_code}"
 
             # Пытаемся создать второго с тем же логином
             payload2 = {
@@ -79,8 +92,9 @@ class TestCourierCreation:
                 "password": generate_random_string(10),
                 "firstName": generate_random_string(10),
             }
-            response2 = requests.post(CREATE_COURIER_URL, json=payload2)
-            assert response2.status_code == 409, f"Ожидался 409 при повторном логине, получено {response2.status_code}"
+            with allure.step("Попытаться создать второго курьера с тем же логином (ожидается 409)"):
+                response2 = self._create_courier(payload2)
+                assert response2.status_code == 409, f"Ожидался 409 при повторном логине, получено {response2.status_code}"
         finally:
             self._cleanup(login, password1)
 
@@ -97,15 +111,9 @@ class TestCourierCreation:
         del payload[missing_field]
 
         try:
-            response = requests.post(CREATE_COURIER_URL, json=payload)
-            assert response.status_code == 400, f"Ожидался 400 при отсутствии '{missing_field}', получено {response.status_code}"
-            
-            assert "message" in response.json(), "При ошибке должен быть ключ 'message' в ответе"
+            with allure.step(f"Отправить запрос без поля '{missing_field}' (ожидается 400)"):
+                response = self._create_courier(payload)
+                assert response.status_code == 400, f"Ожидался 400 при отсутствии '{missing_field}', получено {response.status_code}"
+                assert "message" in response.json(), "При ошибке должен быть ключ 'message' в ответе"
         finally:
-            
             self._cleanup(login, password)
-
-    @staticmethod
-    def _cleanup(login, password):
-        courier_id = get_courier_id_by_login(login, password)
-        delete_courier(courier_id)   

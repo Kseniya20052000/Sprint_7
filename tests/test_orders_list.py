@@ -3,6 +3,7 @@ import requests
 from data import BASE_URL, generate_random_string
 import allure
 
+
 @allure.feature("Управление заказами")
 @allure.story("Получение списка заказов")
 class TestOrdersList:
@@ -24,15 +25,20 @@ class TestOrdersList:
     def _delete_courier(courier_id):
         """Безопасно удаляет курьера (если эндпоинт удаления есть)."""
         try:
-            resp = requests.delete(f"{BASE_URL}/api/v1/courier/{courier_id}")
-            # Не делаем assert, чтобы удаление не ломало тест, если вдруг не поддерживается
+            requests.delete(f"{BASE_URL}/api/v1/courier/{courier_id}")
         except Exception:
             pass
+
+    @allure.step("Получить список заказов по URL {url}")
+    def _get_orders(self, url):
+        return requests.get(url)
 
     @allure.title("Базовый сценарий: получение списка заказов без фильтров")
     def test_get_orders_without_filters(self):
         url = f"{BASE_URL}/api/v1/orders"
-        response = requests.get(url)
+
+        with allure.step("Запросить список заказов без фильтров"):
+            response = self._get_orders(url)
 
         assert response.status_code == 200, f"Ожидался 200, получено {response.status_code}"
         data = response.json()
@@ -61,7 +67,9 @@ class TestOrdersList:
             courier_id = 999999  # заведомо несуществующий
 
         url = f"{BASE_URL}/api/v1/orders?courierId={courier_id}"
-        response = requests.get(url)
+
+        with allure.step(f"Запросить список заказов для courierId={courier_id}"):
+            response = self._get_orders(url)
 
         if not use_existing:
             # Несуществующий курьер — бэкенд должен вернуть 404
@@ -97,7 +105,9 @@ class TestOrdersList:
         payload_json = json.dumps(stations)
         url = f"{BASE_URL}/api/v1/orders?nearestStation={payload_json}"
 
-        response = requests.get(url)
+        with allure.step(f"Запросить заказы с фильтром nearestStation={stations}"):
+            response = self._get_orders(url)
+
         assert response.status_code == 200, f"Ожидался 200 при фильтрации по станциям, получено {response.status_code}"
 
         data = response.json()
@@ -114,7 +124,9 @@ class TestOrdersList:
         limit = 5
         page = 0
         url = f"{BASE_URL}/api/v1/orders?limit={limit}&page={page}"
-        response = requests.get(url)
+
+        with allure.step(f"Запросить заказы с пагинацией: limit={limit}, page={page}"):
+            response = self._get_orders(url)
 
         assert response.status_code == 200
         data = response.json()

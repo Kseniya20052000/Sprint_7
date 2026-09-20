@@ -33,6 +33,10 @@ class TestOrderCreation:
         except Exception:
             pass
 
+    @allure.step("Создать заказ POST-запросом")
+    def _create_order(self, payload):
+        return requests.post(f"{BASE_URL}/api/v1/orders", json=payload)
+
     @pytest.mark.parametrize(
         "color,description",
         [
@@ -45,7 +49,9 @@ class TestOrderCreation:
     @allure.title("Создание заказа: {description}")
     def test_create_order_with_color_variants(self, color, description):
         payload = self._generate_order_payload(color)
-        response = requests.post(f"{BASE_URL}/api/v1/orders", json=payload)
+
+        with allure.step("Создать заказ с указанными параметрами"):
+            response = self._create_order(payload)
 
         assert response.status_code == 201, (
             f"Ожидался 201, получено {response.status_code}. Тело: {response.text}"
