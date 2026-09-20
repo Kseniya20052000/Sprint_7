@@ -1,6 +1,6 @@
 import pytest
 import requests
-from data import BASE_URL, generate_random_string
+from data import BASE_URL
 import allure
 
 
@@ -10,7 +10,7 @@ class TestOrderCreation:
 
     @staticmethod
     def _generate_order_payload(color=None):
-        """Генерирует payload для создания заказа"""
+        """Генерирует payload для создания заказа."""
         payload = {
             "firstName": "Naruto",
             "lastName": "Uchiha",
@@ -20,14 +20,14 @@ class TestOrderCreation:
             "rentTime": 5,
             "deliveryDate": "2020-06-06",
             "comment": "Saske, come back to Konoha",
+            "color": color,
         }
-        if color is not None:
-            payload["color"] = color
         return payload
 
     @staticmethod
+    @allure.step("Отменить заказ по track")
+    
     def _cancel_order_safe(track):
-        """Безопасная отмена заказа, чтобы не засорять базу"""
         try:
             requests.put(f"{BASE_URL}/api/v1/orders/cancel", json={"track": track})
         except Exception:
@@ -59,5 +59,4 @@ class TestOrderCreation:
         assert "track" in response.json(), "В ответе отсутствует поле 'track'"
         assert isinstance(response.json()["track"], int), "track должен быть числом"
 
-        # Очищаем созданный заказ
         self._cancel_order_safe(response.json()["track"])

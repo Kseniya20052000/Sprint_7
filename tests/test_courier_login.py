@@ -8,11 +8,12 @@ import allure
 class TestCourierLogin:
 
     @staticmethod
+    @allure.step("Удалить тестового курьера")
+    
     def _cleanup_safe(login, password):
         try:
             courier_id = get_courier_id_by_login(login, password)
-            if courier_id is not None:
-                delete_courier(courier_id)
+            delete_courier(courier_id)
         except Exception:
             pass
 
@@ -36,11 +37,9 @@ class TestCourierLogin:
         password = generate_random_string(10)
         first_name = generate_random_string(10)
 
-        # Шаг 1: создать курьера
         response_create = self._create_courier(login, password, first_name)
         assert response_create.status_code == 201, f"Ожидался 201 при создании курьера, получено {response_create.status_code}. URL: {CREATE_COURIER_URL}"
 
-        # Шаг 2: выполнить логин
         response = self._login_courier(login, password)
 
         assert response.status_code == 200, f"Ожидался 200 при логине, получено {response.status_code}"
@@ -76,11 +75,9 @@ class TestCourierLogin:
         wrong_password = "wrong_password"
         first_name = generate_random_string(10)
 
-        # Шаг 1: создать курьера
         response_create = self._create_courier(login, password, first_name)
         assert response_create.status_code == 201, f"Ожидался 201 при создании курьера, получено {response_create.status_code}"
 
-        # Шаг 2: попробовать залогиниться с неверным паролем
         with allure.step("Попытаться залогиниться с неверным паролем"):
             payload_login = {"login": login, "password": wrong_password}
             response = requests.post(LOGIN_COURIER_URL, json=payload_login)

@@ -45,7 +45,10 @@ def get_courier_id_by_login(login, password):
     return None
 
 
+
 def delete_courier(courier_id):
-    """Удаляет курьера по ID. Возвращает response."""
+    """Удаляет курьера по ID. Возвращает response или None, если ID не передан."""
+    if courier_id is None:
+        return None
     url = DELETE_COURIER_URL_TEMPLATE.format(courier_id=courier_id)
     return requests.delete(url)
