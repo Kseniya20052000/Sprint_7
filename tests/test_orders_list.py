@@ -1,7 +1,9 @@
 import pytest
 import requests
 import json
-from data import BASE_URL, generate_random_string
+from helpers import generate_random_string
+from data import BASE_URL
+from api_client import delete_courier
 import allure
 
 
@@ -9,8 +11,8 @@ import allure
 @allure.story("Получение списка заказов")
 class TestOrdersList:
 
-    @allure.step("Создать курьера для теста")
     @staticmethod
+    @allure.step("Создать курьера для теста")
     def _create_courier():
         """Создаёт курьера и возвращает его id."""
         payload = {
@@ -18,17 +20,9 @@ class TestOrdersList:
             "password": generate_random_string(10),
             "firstName": generate_random_string(10),
         }
-        resp = requests.post(f"{BASE_URL}/api/v1/courier/create", json=payload)
+        resp = requests.post(f"{BASE_URL}/api/v1/courier", json=payload)
         assert resp.status_code == 201, f"Не удалось создать курьера: {resp.status_code}"
         return resp.json()["id"]
-
-    @allure.step("Удалить курьера")
-    @staticmethod
-    def _delete_courier(courier_id):
-        try:
-            requests.delete(f"{BASE_URL}/api/v1/courier/{courier_id}")
-        except Exception:
-            pass
 
     @allure.step("Получить список заказов по URL {url}")
     def _get_orders(self, url):
@@ -65,11 +59,11 @@ class TestOrdersList:
                 f"В списке заказов курьера {courier_id} найден заказ с другим courierId"
             )
 
-        self._delete_courier(courier_id)
+        delete_courier(courier_id)
 
     @allure.title("Фильтрация по courierId: несуществующий курьер — ожидается 404")
     def test_get_orders_by_nonexistent_courier_id(self):
-        courier_id = 999999  # заведомо несуществующий
+        courier_id = 999999
         url = f"{BASE_URL}/api/v1/orders?courierId={courier_id}"
 
         with allure.step(f"Запросить список заказов для несуществующего courierId={courier_id}"):

@@ -1,6 +1,7 @@
 import pytest
 import requests
-from data import LOGIN_COURIER_URL, generate_random_string
+from helpers import generate_random_string
+from data import LOGIN_COURIER_URL  # <-- добавлен импорт
 import allure
 
 
@@ -41,7 +42,7 @@ class TestCourierLogin:
             response = requests.post(LOGIN_COURIER_URL, json=payload)
 
         assert response.status_code == 400, f"Ожидался 400 при отсутствии password, получено {response.status_code}"
-        assert response.json().get("message") == "Недостаточно данных для входа", "Сообщение об ошибке не совпадает с документацией"
+        assert response.json().get("message") == "Недостаточно данных для входа", "Сообщение не совпадает с документацией"
 
     @allure.title("Негативный сценарий: неверный пароль возвращает ошибку 404")
     def test_login_with_wrong_password_returns_not_found(self, created_courier):

@@ -1,6 +1,8 @@
 import pytest
 import requests
-from data import CREATE_COURIER_URL, generate_random_string, get_courier_id_by_login, delete_courier
+from api_client import get_courier_id_by_login, delete_courier
+from helpers import generate_random_string
+from data import CREATE_COURIER_URL
 import allure
 
 
@@ -53,7 +55,6 @@ class TestCourierCreation:
     @allure.title("Негативный сценарий: нельзя создать двух курьеров с одинаковыми данными")
     def test_create_two_identical_couriers_fails(self, created_courier):
         """Нельзя создать двух одинаковых курьеров."""
-        # created_courier уже создан фикстурой — пытаемся создать такого же
         with allure.step("Второй запрос: повторно создать курьера с теми же данными (ожидается 409)"):
             response = self._create_courier(created_courier)
             assert response.status_code == 409, f"Ожидался 409 при дубликате логина, получено {response.status_code}"
@@ -70,7 +71,7 @@ class TestCourierCreation:
             response = self._create_courier(payload2)
             assert response.status_code == 409, f"Ожидался 409 при повторном логине, получено {response.status_code}"
 
-    @pytest.mark.parametrize("missing_field", ["login", "password"])
+    @pytest.mark.parametrize("missing_field", ["login", "password", "firstName"])
     def test_create_courier_missing_field_returns_error(self, missing_field):
         """Если одного из полей нет, запрос возвращает ошибку 400."""
         allure.dynamic.title(f"Негативный сценарий: отсутствует поле '{missing_field}' — ожидается ошибка 400")
