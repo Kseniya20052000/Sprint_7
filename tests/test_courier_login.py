@@ -1,30 +1,12 @@
 import pytest
 import requests
-from data import LOGIN_COURIER_URL, CREATE_COURIER_URL, generate_random_string, get_courier_id_by_login, delete_courier
+from data import LOGIN_COURIER_URL, generate_random_string
 import allure
+
 
 @allure.feature("Авторизация курьера")
 @allure.story("Вход в систему")
 class TestCourierLogin:
-
-    @staticmethod
-    @allure.step("Удалить тестового курьера")
-    
-    def _cleanup_safe(login, password):
-        try:
-            courier_id = get_courier_id_by_login(login, password)
-            delete_courier(courier_id)
-        except Exception:
-            pass
-
-    @allure.step("Создать курьера через эндпоинт создания")
-    def _create_courier(self, login, password, first_name):
-        payload = {
-            "login": login,
-            "password": password,
-            "firstName": first_name,
-        }
-        return requests.post(CREATE_COURIER_URL, json=payload)
 
     @allure.step("Выполнить логин курьера")
     def _login_courier(self, login, password):
@@ -32,21 +14,14 @@ class TestCourierLogin:
         return requests.post(LOGIN_COURIER_URL, json=payload)
 
     @allure.title("Позитивный сценарий: успешный логин возвращает id курьера (200)")
-    def test_successful_login_returns_id(self):
-        login = generate_random_string(10)
-        password = generate_random_string(10)
-        first_name = generate_random_string(10)
-
-        response_create = self._create_courier(login, password, first_name)
-        assert response_create.status_code == 201, f"Ожидался 201 при создании курьера, получено {response_create.status_code}. URL: {CREATE_COURIER_URL}"
-
-        response = self._login_courier(login, password)
+    def test_successful_login_returns_id(self, created_courier):
+        response = self._login_courier(
+            created_courier["login"], created_courier["password"]
+        )
 
         assert response.status_code == 200, f"Ожидался 200 при логине, получено {response.status_code}"
         assert "id" in response.json(), "В ответе нет поля 'id'"
         assert isinstance(response.json()["id"], int), "'id' должен быть числом"
-
-        self._cleanup_safe(login, password)
 
     @allure.title("Негативный сценарий: запрос без логина возвращает ошибку 400")
     def test_login_without_login_field_returns_error(self):
@@ -69,23 +44,13 @@ class TestCourierLogin:
         assert response.json().get("message") == "Недостаточно данных для входа", "Сообщение об ошибке не совпадает с документацией"
 
     @allure.title("Негативный сценарий: неверный пароль возвращает ошибку 404")
-    def test_login_with_wrong_password_returns_not_found(self):
-        login = generate_random_string(10)
-        password = generate_random_string(10)
-        wrong_password = "wrong_password"
-        first_name = generate_random_string(10)
-
-        response_create = self._create_courier(login, password, first_name)
-        assert response_create.status_code == 201, f"Ожидался 201 при создании курьера, получено {response_create.status_code}"
-
+    def test_login_with_wrong_password_returns_not_found(self, created_courier):
         with allure.step("Попытаться залогиниться с неверным паролем"):
-            payload_login = {"login": login, "password": wrong_password}
+            payload_login = {"login": created_courier["login"], "password": "wrong_password"}
             response = requests.post(LOGIN_COURIER_URL, json=payload_login)
 
         assert response.status_code == 404, f"Ожидался 404 при неверном пароле, получено {response.status_code}"
         assert response.json().get("message") == "Учетная запись не найдена", "Сообщение не совпадает с документацией"
-
-        self._cleanup_safe(login, password)
 
     @allure.title("Негативный сценарий: логин несуществующего пользователя возвращает ошибку 404")
     def test_login_with_nonexistent_user_returns_not_found(self):

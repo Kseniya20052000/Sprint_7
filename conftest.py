@@ -19,8 +19,5 @@ def created_courier(new_courier_data):
     courier_id = get_courier_id_by_login(
         new_courier_data["login"], new_courier_data["password"]
     )
-    # Если вдруг не смогли получить ID — не ломаем фикстуру, но предупредим
     yield new_courier_data
-
-    if courier_id is not None:
-        delete_courier(courier_id)
+    delete_courier(courier_id)
