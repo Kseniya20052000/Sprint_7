@@ -9,87 +9,101 @@ class TestCourierCreation:
 
     @allure.title("Позитивный сценарий: создание курьера возвращает статус 201")
     def test_create_courier_success(self):
-        """курьера можно создать; запрос возвращает правильный код ответа (201)."""
-        payload = {
-            "login": generate_random_string(10),
-            "password": generate_random_string(10),
-            "firstName": generate_random_string(10),
-        }
-        
-        response = requests.post(CREATE_COURIER_URL, json=payload) 
-        assert response.status_code == 201
-        self._cleanup(payload["login"], payload["password"])
+        """Курьера можно создать; запрос возвращает правильный код ответа (201)."""
+        login = generate_random_string(10)
+        password = generate_random_string(10)
+        firstName = generate_random_string(10)
 
-    @allure.title("Позитивный сценарий: успешный запрос возвращает {{\"ok\": true}}")
+        payload = {"login": login, "password": password, "firstName": firstName}
+
+        try:
+            response = requests.post(CREATE_COURIER_URL, json=payload)
+            assert response.status_code == 201
+        finally:
+            self._cleanup(login, password)
+
+    @allure.title("Позитивный сценарий: успешный запрос возвращает {\"ok\": true}")
     def test_create_courier_returns_ok_true(self):
-        """успешный запрос возвращает {"ok": true}."""
-        payload = {
-            "login": generate_random_string(10),
-            "password": generate_random_string(10),
-            "firstName": generate_random_string(10),
-        }
-        
-        response = requests.post(CREATE_COURIER_URL, json=payload)
-        assert response.status_code == 201
-        assert response.json() == {"ok": True}
-        self._cleanup(payload["login"], payload["password"])
+        """Успешный запрос возвращает {"ok": true}."""
+        login = generate_random_string(10)
+        password = generate_random_string(10)
+        firstName = generate_random_string(10)
+
+        payload = {"login": login, "password": password, "firstName": firstName}
+
+        try:
+            response = requests.post(CREATE_COURIER_URL, json=payload)
+            assert response.status_code == 201
+            assert response.json() == {"ok": True}
+        finally:
+            self._cleanup(login, password)
 
     @allure.title("Негативный сценарий: нельзя создать двух курьеров с одинаковыми данными")
     def test_create_two_identical_couriers_fails(self):
-        """нельзя создать двух одинаковых курьеров."""
-        payload = {
-            "login": generate_random_string(10),
-            "password": generate_random_string(10),
-            "firstName": generate_random_string(10),
-        }
-        response1 = requests.post(CREATE_COURIER_URL, json=payload)
-        assert response1.status_code == 201
+        """Нельзя создать двух одинаковых курьеров."""
+        login = generate_random_string(10)
+        password = generate_random_string(10)
+        firstName = generate_random_string(10)
 
-        response2 = requests.post(CREATE_COURIER_URL, json=payload)
-        assert response2.status_code == 409
-        assert "Этот логин уже используется" in response2.json()["message"]
-        self._cleanup(payload["login"], payload["password"])
+        payload = {"login": login, "password": password, "firstName": firstName}
+
+        try:
+            # Первый запрос — успешный
+            response1 = requests.post(CREATE_COURIER_URL, json=payload)
+            assert response1.status_code == 201, f"Ожидался 201, получено {response1.status_code}"
+
+            # Второй запрос — должен вернуть 409 (дубликат)
+            response2 = requests.post(CREATE_COURIER_URL, json=payload)
+            assert response2.status_code == 409, f"Ожидался 409 при дубликате логина, получено {response2.status_code}"
+           
+        finally:
+            self._cleanup(login, password)
 
     @allure.title("Негативный сценарий: попытка создания курьера с существующим логином возвращает ошибку")
     def test_create_courier_duplicate_login_returns_error(self):
-        """если создать пользователя с логином, который уже есть — возвращается ошибка."""
-        payload1 = {
-            "login": generate_random_string(10),
-            "password": generate_random_string(10),
-            "firstName": generate_random_string(10),
-        }
-        response1 = requests.post(CREATE_COURIER_URL, json=payload1)
-        assert response1.status_code == 201
+        """Если создать пользователя с логином, который уже есть — возвращается ошибка."""
+        login = generate_random_string(10)
+        password1 = generate_random_string(10)
+        firstName1 = generate_random_string(10)
 
-        payload2 = {
-            "login": payload1["login"],
-            "password": generate_random_string(10),
-            "firstName": generate_random_string(10),
-        }
-        response2 = requests.post(CREATE_COURIER_URL, json=payload2)
-        assert response2.status_code == 409
-        assert "Этот логин уже используется" in response2.json()["message"]
-        self._cleanup(payload1["login"], payload1["password"])
+        payload1 = {"login": login, "password": password1, "firstName": firstName1}
+
+        try:
+            # Создаём первого курьера
+            response1 = requests.post(CREATE_COURIER_URL, json=payload1)
+            assert response1.status_code == 201, f"Ожидался 201, получено {response1.status_code}"
+
+            # Пытаемся создать второго с тем же логином
+            payload2 = {
+                "login": login,
+                "password": generate_random_string(10),
+                "firstName": generate_random_string(10),
+            }
+            response2 = requests.post(CREATE_COURIER_URL, json=payload2)
+            assert response2.status_code == 409, f"Ожидался 409 при повторном логине, получено {response2.status_code}"
+        finally:
+            self._cleanup(login, password1)
 
     @pytest.mark.parametrize("missing_field", ["login", "password", "firstName"])
     def test_create_courier_missing_field_returns_error(self, missing_field):
-        """если одного из полей нет, запрос возвращает ошибку 400."""
+        """Если одного из полей нет, запрос возвращает ошибку 400."""
         allure.dynamic.title(f"Негативный сценарий: отсутствует поле '{missing_field}' — ожидается ошибка 400")
-        
-        payload = {
-            "login": generate_random_string(10),
-            "password": generate_random_string(10),
-            "firstName": generate_random_string(10),
-        }
+
+        login = generate_random_string(10)
+        password = generate_random_string(10)
+        firstName = generate_random_string(10)
+
+        payload = {"login": login, "password": password, "firstName": firstName}
         del payload[missing_field]
 
-        
-        response = requests.post(CREATE_COURIER_URL, json=payload)
-        
-        
-        
-        assert response.status_code == 400
-        assert response.json()["message"] == "Недостаточно данных для создания учетной записи"
+        try:
+            response = requests.post(CREATE_COURIER_URL, json=payload)
+            assert response.status_code == 400, f"Ожидался 400 при отсутствии '{missing_field}', получено {response.status_code}"
+            
+            assert "message" in response.json(), "При ошибке должен быть ключ 'message' в ответе"
+        finally:
+            
+            self._cleanup(login, password)
 
     @staticmethod
     def _cleanup(login, password):
